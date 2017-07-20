@@ -32,6 +32,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Https.Internal
 
         public HttpsConnectionAdapter(HttpsConnectionAdapterOptions options, ILoggerFactory loggerFactory)
         {
+            Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] HttpsConnectionAdapter ctor", DateTime.UtcNow);
+
             if (options == null)
             {
                 throw new ArgumentNullException(nameof(options));
@@ -55,6 +57,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Https.Internal
 
         public Task<IAdaptedConnection> OnConnectionAsync(ConnectionAdapterContext context)
         {
+            Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] Connection '{1}' started.", DateTime.UtcNow, context.Features.Get<IHttpConnectionFeature>()?.ConnectionId);
+
             // Don't trust SslStream not to block.
             return Task.Run(() => InnerOnConnectionAsync(context));
         }
@@ -75,6 +79,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Https.Internal
                     leaveInnerStreamOpen: false,
                     userCertificateValidationCallback: (sender, certificate, chain, sslPolicyErrors) =>
                     {
+                        Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] Connection '{1}' userCertificateValidationCallback.", DateTime.UtcNow, context.Features.Get<IHttpConnectionFeature>()?.ConnectionId);
+
                         if (certificate == null)
                         {
                             return _options.ClientCertificateMode != ClientCertificateMode.RequireCertificate;
@@ -112,6 +118,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Https.Internal
             {
                 await sslStream.AuthenticateAsServerAsync(_serverCertificate, certificateRequired,
                         _options.SslProtocols, _options.CheckCertificateRevocation);
+
+                Console.WriteLine("[{0:MM/dd/yyy HH:mm:ss.fff}] Connection '{1}' handshake completed.", DateTime.UtcNow, context.Features.Get<IHttpConnectionFeature>()?.ConnectionId);
             }
             catch (IOException ex)
             {

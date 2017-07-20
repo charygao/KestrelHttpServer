@@ -76,11 +76,24 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
                 }
             };
 
-
             using (var server = new TestServer(App, serviceContext, listenOptions))
             {
-                await Assert.ThrowsAnyAsync<Exception>(
-                    () => HttpClientSlim.GetStringAsync($"https://localhost:{server.Port}/"));
+                using (var client = new TcpClient())
+                {
+                    Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] TcpClient created.", DateTime.UtcNow);
+
+                    var stream = await OpenSslStream(client, server);
+
+                    Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] Starting AuthenticateAsClientAsync.", DateTime.UtcNow);
+
+                    var ex = await Assert.ThrowsAsync(typeof(IOException),
+                        async () => await stream.AuthenticateAsClientAsync("localhost", new X509CertificateCollection(), SslProtocols.Tls, false));
+
+                    Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] AuthenticateAsClientAsync threw.", DateTime.UtcNow);
+                }
+
+                //await Assert.ThrowsAnyAsync<Exception>(
+                //    () => HttpClientSlim.GetStringAsync($"https://localhost:{server.Port}/"));
             }
         }
 
@@ -449,8 +462,13 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
         private static async Task<SslStream> OpenSslStream(TcpClient client, TestServer server, X509Certificate2 clientCertificate = null)
         {
             await client.ConnectAsync("127.0.0.1", server.Port);
+
+            Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] TcpClient connected.", DateTime.UtcNow);
+
             var stream = new SslStream(client.GetStream(), false, (sender, certificate, chain, errors) => true,
                 (sender, host, certificates, certificate, issuers) => clientCertificate ?? _x509Certificate2);
+
+            Console.WriteLine("[{0:MM/dd/yyyy HH:mm:ss.fff}] Client SslStream created.", DateTime.UtcNow);
 
             return stream;
         }
